@@ -28,6 +28,56 @@
   let screenWidth = $state(0);
   let screenHeight = $state(0);
 
+  // Aircraft visibility control
+  let selectedAircraft = $state<Set<string>>(new Set());
+  let showAircraftPanel = $state(true);
+
+  // Function to get aircraft display name
+  function getAircraftDisplayName(aircraft: any, key: string) {
+    return aircraft.address || key;
+  }
+
+  // Function to toggle aircraft visibility
+  function toggleAircraftVisibility(key: string, checked: boolean) {
+    const aircraft = aircrafts[key];
+    if (aircraft) {
+      aircraft.hidden = !checked;
+      if (checked) {
+        selectedAircraft.add(key);
+      } else {
+        selectedAircraft.delete(key);
+      }
+      selectedAircraft = new Set(selectedAircraft); // Trigger reactivity
+    }
+  }
+
+  // Function to toggle all aircraft
+  function toggleAllAircraft(checked: boolean) {
+    Object.keys(aircrafts).forEach(key => {
+      const aircraft = aircrafts[key];
+      if (aircraft) {
+        aircraft.hidden = !checked;
+        if (checked) {
+          selectedAircraft.add(key);
+        } else {
+          selectedAircraft.delete(key);
+        }
+      }
+    });
+    selectedAircraft = new Set(selectedAircraft); // Trigger reactivity
+  }
+
+  // Initialize new aircraft as visible by default
+  $effect(() => {
+    Object.keys(aircrafts).forEach(key => {
+      const aircraft = aircrafts[key];
+      if (aircraft && !aircraft.hidden && !selectedAircraft.has(key)) {
+        selectedAircraft.add(key);
+        selectedAircraft = new Set(selectedAircraft); // Trigger reactivity
+      }
+    });
+  });
+
   // Coordinate conversion functions
   function latLonToScreen(lat: number, lon: number) {
     // Return off-screen coordinates for invalid lat/lon
@@ -155,8 +205,88 @@
       </div>
     {/if}
     
+    <!-- Aircraft Control Panel -->
+    <div class="absolute top-0 left-0 h-full {showAircraftPanel ? 'w-80' : 'w-12'} bg-black bg-opacity-80 text-white z-20 flex flex-col transition-all duration-300">
+      <div class="p-4 {showAircraftPanel ? 'border-b border-gray-600' : ''}">
+        <div class="flex items-center justify-between mb-2">
+          {#if showAircraftPanel}
+            <h2 class="text-lg font-bold">Aircraft Control</h2>
+          {/if}
+          <button 
+            on:click={() => showAircraftPanel = !showAircraftPanel}
+            class="text-gray-400 hover:text-white p-1"
+            title={showAircraftPanel ? "Collapse panel" : "Expand panel"}
+          >
+            {showAircraftPanel ? '←' : '→'}
+          </button>
+        </div>
+        {#if showAircraftPanel}
+          <div class="flex items-center gap-2 mb-2">
+            <input 
+              type="checkbox" 
+              id="toggle-all"
+              checked={Object.keys(aircrafts).length > 0 && Object.keys(aircrafts).every(key => selectedAircraft.has(key))}
+              on:change={(e) => toggleAllAircraft(e.currentTarget.checked)}
+              class="rounded"
+            />
+            <label for="toggle-all" class="text-sm">Toggle All ({Object.keys(aircrafts).length} aircraft)</label>
+          </div>
+        {/if}
+      </div>
+      
+      {#if showAircraftPanel}
+        <div class="flex-1 overflow-y-auto p-4">
+          {#if Object.keys(aircrafts).length === 0}
+            <div class="text-gray-400 text-sm">No aircraft detected yet...</div>
+          {:else}
+            <!-- {@const sortedAircraft = Object.entries(aircrafts).sort(([,a], [,b]) => (b.rssi || 0) - (a.rssi || 0))} -->
+            {@const maxRssi = Math.max(...Object.values(aircrafts).map(a => a.rssi || 0))}
+            {@const minRssi = Math.min(...Object.values(aircrafts).map(a => a.rssi || 0))}
+            <div class="space-y-2">
+              {#each Object.entries(aircrafts) as [key, aircraft]}
+                {@const isVisible = selectedAircraft.has(key)}
+                {@const rssiPercentage = maxRssi > minRssi ? ((aircraft.rssi || 0) - minRssi) / (maxRssi - minRssi) * 100 : 50}
+                {@const signalBars = Math.ceil(rssiPercentage / 25)}
+                <div class="flex items-center gap-2 p-2 bg-gray-800 bg-opacity-50 rounded text-xs">
+                  <input 
+                    type="checkbox" 
+                    id="aircraft-{key}"
+                    checked={isVisible}
+                    on:change={(e) => toggleAircraftVisibility(key, e.currentTarget.checked)}
+                    class="rounded"
+                  />
+                  <label for="aircraft-{key}" class="flex-1 cursor-pointer">
+                    <div class="flex items-center gap-2">
+                      <div class="font-mono">{getAircraftDisplayName(aircraft, key)}</div>
+                      <!-- Signal strength indicator -->
+                      <div class="flex items-center gap-1" title="Signal: {aircraft.rssi || 0} dB">
+                        {#each Array(4) as _, i}
+                          <div class="w-1 h-2 {i < signalBars ? 'bg-green-500' : 'bg-gray-600'} rounded-sm"></div>
+                        {/each}
+                        <span class="text-gray-500 text-xs ml-1">{aircraft.rssi || 0}</span>
+                      </div>
+                    </div>
+                    <div class="text-gray-400">
+                      Alt: {aircraft.altitude || 'N/A'}m | 
+                      {aircraft.receiver === 'zi-5067' ? 'Red' : 'Blue'}
+                    </div>
+                    {#if aircraft.latitude && aircraft.longitude}
+                      <div class="text-gray-500">
+                        {aircraft.latitude.toFixed(3)}, {aircraft.longitude.toFixed(3)}
+                      </div>
+                    {/if}
+                  </label>
+                  <div class="w-2 h-2 {aircraft.receiver === 'zi-5067' ? 'bg-red-500' : 'bg-blue-500'} rounded-full"></div>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      {/if}
+    </div>
+    
     <!-- Controls info -->
-    <div class="absolute top-0 left-0 p-4 text-white text-xs z-20 bg-black bg-opacity-50 rounded-br-lg">
+    <div class="absolute top-0 {showAircraftPanel ? 'left-80' : 'left-12'} p-4 text-white text-xs z-20 bg-black bg-opacity-50 rounded-br-lg transition-all duration-300">
       <div>Use arrow keys to pan</div>
       <div>Use +/- to zoom</div>
       <div>Center: {centerLat.toFixed(3)}, {centerLon.toFixed(3)}</div>

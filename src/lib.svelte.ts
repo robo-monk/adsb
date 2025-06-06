@@ -63,7 +63,7 @@ function garbageCollection() {
     if (aircraft.timestamp && currentTimestamp - aircraft.timestamp > DROP_IF_BEFORE) {
       console.debug("[X] DROPPING", key);
       // aircrafts.delete(key);
-      aircraft.hidden = true;
+      // aircraft.hidden = true;
     }
   });
 }
@@ -124,7 +124,7 @@ export function processIncomingAircraftSignal(json: string) {
     if (signal.heading) aircraft.heading = signal.heading;
     if (signal.speed) aircraft.speed = signal.speed;
     
-    aircraft.hidden = false;
+    // aircraft.hidden = false;
     aircrafts[key] = aircraft;
   } else {
     aircrafts[key] = signal as AircraftSignal;
