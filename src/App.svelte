@@ -17,9 +17,9 @@
   let outOfData = $state(false);
 
   // Map view state
-  let centerLat = $state(51.92); // Initial center latitude
-  let centerLon = $state(5.92); // Initial center longitude
-  let zoomLevel = $state(3); // Initial zoom level (higher = more zoomed in)
+  let centerLat = $state(52.32); // Initial center latitude
+  let centerLon = $state(5.84); // Initial center longitude
+  let zoomLevel = $state(1); // Initial zoom level (higher = more zoomed in)
 
   // Screen dimensions
   let screenWidth = $state(0);
@@ -62,6 +62,37 @@
       }
     });
     selectedAircraft = new Set(selectedAircraft); // Trigger reactivity
+  }
+
+  // Function to show only selected aircraft
+  function showOnlyAircraft(targetKey: string) {
+    Object.keys(aircrafts).forEach((key) => {
+      const aircraft = aircrafts[key];
+      if (aircraft) {
+        aircraft.hidden = key !== targetKey;
+        if (key === targetKey) {
+          selectedAircraft.add(key);
+        } else {
+          selectedAircraft.delete(key);
+        }
+      }
+    });
+    selectedAircraft = new Set(selectedAircraft); // Trigger reactivity
+  }
+
+  // Function to format aircraft tooltip data
+  function getAircraftTooltip(aircraft: any, key: string) {
+    const lines = [
+      `ID: ${aircraft.address || key}`,
+      `Altitude: ${aircraft.altitude || 'N/A'}m`,
+      `Position: ${aircraft.latitude?.toFixed(6) || 'N/A'}, ${aircraft.longitude?.toFixed(6) || 'N/A'}`,
+      `Heading: ${aircraft.heading || 'N/A'}°`,
+      `Speed: ${aircraft.speed || 'N/A'} knots`,
+      `Signal: ${aircraft.rssi || 'N/A'} dB`,
+      `Receiver: ${aircraft.receiver || 'N/A'}`,
+      `Last seen: ${aircraft.timestamp ? new Date(aircraft.timestamp).toLocaleTimeString() : 'N/A'}`
+    ];
+    return lines.join('\n');
   }
 
   // Initialize new aircraft as visible by default
@@ -222,6 +253,7 @@
   });
 
   let showLittlePlanes = $state(true);
+  let hoveredAircraft = $state<string | null>(null);
 </script>
 
 <main class="relative">
@@ -402,7 +434,7 @@
       </div>
     </div>
 
-    {#each Object.values(aircrafts) as aircraft}
+    {#each Object.entries(aircrafts) as [key, aircraft]}
       {@const visibleAircraft = Object.values(aircrafts).filter(
         (a) => !a.hidden
       )}
@@ -440,7 +472,7 @@
             <div
               class="absolute {aircraft.receiver === 'zi-5067'
                 ? 'bg-red-500'
-                : 'bg-blue-500'} rounded-full"
+                : 'bg-blue-500'} rounded-full transition-all duration-200"
               style="left: {trailScreenPos.x}px; top: {trailScreenPos.y}px; transform: translate(-50%, -50%); opacity: {trailOpacity}; width: {trailSize}px; height: {trailSize}px;"
               title="Signal: {historyPos.rssi} dB at {new Date(
                 historyPos.timestamp
@@ -453,7 +485,7 @@
         <!-- Current Aircraft Position -->
         <div
           class="absolute flex flex-col items-center justify-center transition-all duration-200"
-          style="left: {screenPos.x}px; top: {screenPos.y}px; transform: translate(-50%, -50%); opacity: {Math.max(
+          style="left: {screenPos.x}px; top: {screenPos.y}px; transform: translate(-50%, -50%); opacity: {hoveredAircraft === key ? 1 : Math.max(
             0.3,
             rssiPercentage
           )}"
@@ -474,13 +506,43 @@
             <div
               class="{aircraft.receiver === 'zi-5067'
                 ? 'text-red-300'
-                : 'text-blue-300'} relative"
+                : 'text-blue-300'} relative z-20 cursor-pointer hover:scale-125 transition-transform duration-200"
               style="transform: rotateZ({aircraft.heading}deg);"
+              on:click={() => showOnlyAircraft(key)}
+              on:mouseenter={() => hoveredAircraft = key}
+              on:mouseleave={() => hoveredAircraft = null}
+              role="button"
+              tabindex="0"
+              on:keydown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  showOnlyAircraft(key);
+                }
+              }}
             >
               <!-- <div
-              class="w-[1px] h-2 bg-white absolute left-1/2 -translate-x-1/2 -translate-y-[100%]"
+              class="w-5 h-5 bg-green-200/70 absolute left-1/2 -translate-x-1/2 translate-y-0 rounded-full animate-ping"
             ></div> -->
               <div class=" text-xs -rotate-90">✈</div>
+            </div>
+          {/if}
+          
+          <!-- Custom Tooltip (outside rotated airplane) -->
+          {#if hoveredAircraft === key && showLittlePlanes}
+            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none">
+              <div class="bg-black bg-opacity-90 text-white text-xs p-3 rounded-lg shadow-lg border border-gray-600 whitespace-nowrap">
+                <div class="flex flex-col gap-1">
+                  <div><strong>ID:</strong> {aircraft.address || key}</div>
+                  <div><strong>Altitude:</strong> {aircraft.altitude || 'N/A'}m</div>
+                  <div><strong>Position:</strong> {aircraft.latitude?.toFixed(6) || 'N/A'}, {aircraft.longitude?.toFixed(6) || 'N/A'}</div>
+                  <div><strong>Heading:</strong> {aircraft.heading || 'N/A'}°</div>
+                  <div><strong>Speed:</strong> {aircraft.speed || 'N/A'} knots</div>
+                  <div><strong>Signal:</strong> {aircraft.rssi || 'N/A'} dB</div>
+                  <div><strong>Receiver:</strong> {aircraft.receiver || 'N/A'}</div>
+                  <div><strong>Last seen:</strong> {aircraft.timestamp ? new Date(aircraft.timestamp).toLocaleTimeString() : 'N/A'}</div>
+                </div>
+                <!-- Tooltip Arrow -->
+                <div class="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black border-t-opacity-90"></div>
+              </div>
             </div>
           {/if}
         </div>
