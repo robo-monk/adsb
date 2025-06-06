@@ -1,47 +1,69 @@
-# Svelte + TS + Vite
+# ADS-B Aircraft Tracker
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+A real-time ADS-B (Automatic Dependent Surveillance-Broadcast) aircraft tracking application with advanced signal strength visualization and analysis capabilities using live or recorded data from Universiy of Twente sensors. 
 
-## Recommended IDE Setup
+### Core Functionality
+- **Real-time Aircraft Tracking**: Live display of aircraft positions from ADS-B receivers
+- **Signal Strength Analysis**: Visual representation of RSSI (Received Signal Strength Indicator) values
+- **Historical Data Playback**: Process and visualize historical ADS-B data from JSONL files
+- **Multi-receiver Support**: Simultaneous tracking from multiple ADS-B receivers (zi-5067, zi-5110)
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+### Advanced Visualization
+- **Interactive Map Interface**: Pan and zoom controls for exploring coverage areas
+- **Signal-Strength Based Trails**: Aircraft flight paths with opacity and size reflecting signal quality
+- **Real-time Signal Indicators**: 4-bar signal strength displays for each aircraft
+- **Color-coded Receivers**: Red (zi-5067) and Blue (zi-5110) receiver differentiation
 
-## Need an official Svelte framework?
+## 🎮 Usage
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+### Historical Data Mode
+1. Place your JSONL data file in the `src/` directory
+2. Update the import in `App.svelte`:
+   ```typescript
+   import bigass from "./your-data-file.jsonl?raw";
+   ```
+3. Uncomment the `processEntries()` call to start playback
 
-## Technical considerations
+### Controls
+- **Arrow Keys**: Pan the map view
+- **+/-**: Zoom in/out
+- **Aircraft Panel**: Toggle individual aircraft visibility
+- **Collapse Button**: Hide/show the control panel
 
-**Why use this over SvelteKit?**
+## 📊 Signal Analysis Features
 
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
+### Trail Visualization
+- **Opacity**: Stronger signals appear brighter
+- **Size**: Signal strength determines trail dot size
+- **Color**: Matches receiver color (Red/Blue)
+- **Tooltips**: Hover for exact RSSI values and timestamps
 
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
+### RSSI Values
+- **Strong Signal**: -30 to -50 dBm (bright, large trail dots)
+- **Medium Signal**: -50 to -70 dBm (moderate visibility)
+- **Weak Signal**: -70 to -90 dBm (faint trail dots)
+- **Very Weak**: Below -90 dBm (minimal visibility)
 
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
+### Signal Bars
+- **4 Bars**: Strongest signal in current group
+- **3 Bars**: Good signal quality
+- **2 Bars**: Moderate signal quality
+- **1 Bar**: Weak but detectable signal
 
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
 
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
+## 📄 Data Format
 
-**Why include `.vscode/extensions.json`?**
-
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `allowJs` in the TS template?**
-
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
+The application expects ADS-B data in JSON Lines format:
+```json
+{
+  "address": "A12345",
+  "latitude": 51.9200,
+  "longitude": 5.9200,
+  "altitude": 10000,
+  "heading": 180,
+  "speed": 450,
+  "rssi": -45,
+  "receiver": "zi-5067",
+  "timestamp": "2024-01-01T12:00:00Z"
+}
 ```
