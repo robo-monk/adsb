@@ -9,10 +9,7 @@
   // import bigass from "./out-ads-b.jsonl?raw";
 
   let cursor = 0;
-  const entries = bigass
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
+
   // .map((s) => JSON.parse(s.trim()));
 
   const FFWD_FACTOR = 0.001; // 1 is realtime, 0.1 is 10x faster, 0.01 is 100x faster
@@ -161,23 +158,34 @@
     }
   }
 
-  let lastTimestamp = Date.parse(entries[0]).valueOf();
-  let instant = true;
-  function next() {
-    const entry = entries[cursor++];
-    if (entry) {
-      const signal = processIncomingAircraftSignal(entry);
-      if (signal) {
-        if (instant) {
-          next();
-        } else {
-          setTimeout(next, (signal.timestamp! - lastTimestamp) * FFWD_FACTOR);
+ 
+  // Helper function to create a delay promise
+  function delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+  
+  async function processEntries(maxEntries: number) {
+    const entries = bigass
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    let lastTimestamp = Date.parse(entries[0]).valueOf();
+    let instant = true;
+    
+    while (cursor < Math.min(maxEntries, entries.length)) {
+      const entry = entries[cursor++];
+      if (entry) {
+        const signal = processIncomingAircraftSignal(entry);
+        if (signal) {
+          if (!instant) {
+            await delay((signal.timestamp! - lastTimestamp) * FFWD_FACTOR);
+          }
+          lastTimestamp = signal.timestamp!;
         }
-        lastTimestamp = signal.timestamp!;
       }
-    } else {
-      // outOfData = true;
     }
+    // outOfData = true;
   }
 
   onMount(() => {
@@ -200,20 +208,20 @@
     };
   });
 
-  next();
+  // processEntries(10_000);
 
   // connect to ws at ws://192.87.172.71:1338
-  // const ws = new WebSocket("ws://192.87.172.71:1338");
+  const ws = new WebSocket("ws://192.87.172.71:1338");
 
-  // ws.onmessage = (event) => {
-  //   processIncomingAircraftSignal(event.data);
-  // };
+  ws.onmessage = (event) => {
+    processIncomingAircraftSignal(event.data);
+  };
 
-  // onDestroy(() => {
-  //   ws.close();
-  // });
+  onDestroy(() => {
+    ws.close();
+  });
 
-  let showLittlePlanes = $state(false);
+  let showLittlePlanes = $state(true);
 </script>
 
 <main class="relative">
