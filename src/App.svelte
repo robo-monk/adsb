@@ -20,10 +20,10 @@
   let outOfData = $state(false);
 
   // Map view state
-  let centerLat = $state(51.920); // Initial center latitude
-  let centerLon = $state(5.92);  // Initial center longitude
-  let zoomLevel = $state(3);    // Initial zoom level (higher = more zoomed in)
-  
+  let centerLat = $state(51.92); // Initial center latitude
+  let centerLon = $state(5.92); // Initial center longitude
+  let zoomLevel = $state(3); // Initial zoom level (higher = more zoomed in)
+
   // Screen dimensions
   let screenWidth = $state(0);
   let screenHeight = $state(0);
@@ -53,7 +53,7 @@
 
   // Function to toggle all aircraft
   function toggleAllAircraft(checked: boolean) {
-    Object.keys(aircrafts).forEach(key => {
+    Object.keys(aircrafts).forEach((key) => {
       const aircraft = aircrafts[key];
       if (aircraft) {
         aircraft.hidden = !checked;
@@ -69,7 +69,7 @@
 
   // Initialize new aircraft as visible by default
   $effect(() => {
-    Object.keys(aircrafts).forEach(key => {
+    Object.keys(aircrafts).forEach((key) => {
       const aircraft = aircrafts[key];
       if (aircraft && !aircraft.hidden && !selectedAircraft.has(key)) {
         selectedAircraft.add(key);
@@ -84,20 +84,20 @@
     if (isNaN(lat) || isNaN(lon) || lat == null || lon == null) {
       return { x: -1000, y: -1000 };
     }
-    
+
     // Convert lat/lon to screen coordinates with proper scaling
     const scale = Math.pow(2, zoomLevel);
-    
+
     // Calculate degrees per pixel based on zoom level
     // At zoom level 1, we want to show roughly 10 degrees of lat/lon
     const degreesPerPixel = 10 / (Math.min(screenWidth, screenHeight) * scale);
-    
+
     // Convert longitude to x
-    const x = ((lon - centerLon) / degreesPerPixel) + screenWidth / 2;
-    
+    const x = (lon - centerLon) / degreesPerPixel + screenWidth / 2;
+
     // Convert latitude to y (flip Y axis since screen coordinates go down)
-    const y = ((centerLat - lat) / degreesPerPixel) + screenHeight / 2;
-    
+    const y = (centerLat - lat) / degreesPerPixel + screenHeight / 2;
+
     return { x, y };
   }
 
@@ -105,11 +105,25 @@
   $effect(() => {
     const aircraftList = Object.values(aircrafts);
     if (aircraftList.length > 0) {
-      const lats = aircraftList.map(a => a.latitude).filter(lat => !isNaN(lat) && lat != null);
-      const lons = aircraftList.map(a => a.longitude).filter(lon => !isNaN(lon) && lon != null);
+      const lats = aircraftList
+        .map((a) => a.latitude)
+        .filter((lat) => !isNaN(lat) && lat != null);
+      const lons = aircraftList
+        .map((a) => a.longitude)
+        .filter((lon) => !isNaN(lon) && lon != null);
       if (lats.length > 0 && lons.length > 0) {
-        console.log('Lat range:', Math.min(...lats).toFixed(6), 'to', Math.max(...lats).toFixed(6));
-        console.log('Lon range:', Math.min(...lons).toFixed(6), 'to', Math.max(...lons).toFixed(6));
+        console.log(
+          "Lat range:",
+          Math.min(...lats).toFixed(6),
+          "to",
+          Math.max(...lats).toFixed(6)
+        );
+        console.log(
+          "Lon range:",
+          Math.min(...lons).toFixed(6),
+          "to",
+          Math.max(...lons).toFixed(6)
+        );
       }
     }
   });
@@ -117,30 +131,30 @@
   // Keyboard controls
   function handleKeydown(event: KeyboardEvent) {
     const panStep = 0.01 / Math.pow(2, zoomLevel - 5); // Adjust pan step based on zoom
-    
+
     switch (event.key) {
-      case 'ArrowUp':
+      case "ArrowUp":
         centerLat += panStep;
         event.preventDefault();
         break;
-      case 'ArrowDown':
+      case "ArrowDown":
         centerLat -= panStep;
         event.preventDefault();
         break;
-      case 'ArrowLeft':
+      case "ArrowLeft":
         centerLon -= panStep;
         event.preventDefault();
         break;
-      case 'ArrowRight':
+      case "ArrowRight":
         centerLon += panStep;
         event.preventDefault();
         break;
-      case '+':
-      case '=':
+      case "+":
+      case "=":
         zoomLevel = Math.min(zoomLevel + 1, 15);
         event.preventDefault();
         break;
-      case '-':
+      case "-":
         zoomLevel = Math.max(zoomLevel - 1, 1);
         event.preventDefault();
         break;
@@ -165,19 +179,19 @@
     // Get initial screen dimensions
     screenWidth = window.innerWidth;
     screenHeight = window.innerHeight;
-    
+
     // Update screen dimensions on resize
     function handleResize() {
       screenWidth = window.innerWidth;
       screenHeight = window.innerHeight;
     }
-    
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('keydown', handleKeydown);
-    
+
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("keydown", handleKeydown);
+
     return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('keydown', handleKeydown);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("keydown", handleKeydown);
     };
   });
 
@@ -187,7 +201,7 @@
   const ws = new WebSocket("ws://192.87.172.71:1338");
 
   ws.onmessage = (event) => {
-    processIncomingAircraftSignal(event.data)
+    processIncomingAircraftSignal(event.data);
   };
 
   onDestroy(() => {
@@ -204,79 +218,116 @@
         <div class="text-red-500 text-2xl font-bold">Out of data</div>
       </div>
     {/if}
-    
+
     <!-- Aircraft Control Panel -->
-    <div class="absolute top-0 left-0 h-full {showAircraftPanel ? 'w-80' : 'w-12'} bg-black bg-opacity-80 text-white z-20 flex flex-col transition-all duration-300">
+    <div
+      class="absolute top-0 left-0 h-full {showAircraftPanel
+        ? 'w-80'
+        : 'w-12'} bg-black bg-opacity-80 text-white z-20 flex flex-col transition-all duration-300"
+    >
       <div class="p-4 {showAircraftPanel ? 'border-b border-gray-600' : ''}">
         <div class="flex items-center justify-between mb-2">
           {#if showAircraftPanel}
             <h2 class="text-lg font-bold">Aircraft Control</h2>
           {/if}
-          <button 
-            on:click={() => showAircraftPanel = !showAircraftPanel}
+          <button
+            on:click={() => (showAircraftPanel = !showAircraftPanel)}
             class="text-gray-400 hover:text-white p-1"
             title={showAircraftPanel ? "Collapse panel" : "Expand panel"}
           >
-            {showAircraftPanel ? '←' : '→'}
+            {showAircraftPanel ? "←" : "→"}
           </button>
         </div>
         {#if showAircraftPanel}
           <div class="flex items-center gap-2 mb-2">
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               id="toggle-all"
-              checked={Object.keys(aircrafts).length > 0 && Object.keys(aircrafts).every(key => selectedAircraft.has(key))}
+              checked={Object.keys(aircrafts).length > 0 &&
+                Object.keys(aircrafts).every((key) =>
+                  selectedAircraft.has(key)
+                )}
               on:change={(e) => toggleAllAircraft(e.currentTarget.checked)}
               class="rounded"
             />
-            <label for="toggle-all" class="text-sm">Toggle All ({Object.keys(aircrafts).length} aircraft)</label>
+            <label for="toggle-all" class="text-sm"
+              >Toggle All ({Object.keys(aircrafts).length} aircraft)</label
+            >
           </div>
         {/if}
       </div>
-      
+
       {#if showAircraftPanel}
         <div class="flex-1 overflow-y-auto p-4">
           {#if Object.keys(aircrafts).length === 0}
             <div class="text-gray-400 text-sm">No aircraft detected yet...</div>
           {:else}
             <!-- {@const sortedAircraft = Object.entries(aircrafts).sort(([,a], [,b]) => (b.rssi || 0) - (a.rssi || 0))} -->
-            {@const maxRssi = Math.max(...Object.values(aircrafts).map(a => a.rssi || 0))}
-            {@const minRssi = Math.min(...Object.values(aircrafts).map(a => a.rssi || 0))}
+            {@const maxRssi = Math.max(
+              ...Object.values(aircrafts).map((a) => a.rssi || 0)
+            )}
+            {@const minRssi = Math.min(
+              ...Object.values(aircrafts).map((a) => a.rssi || 0)
+            )}
             <div class="space-y-2">
               {#each Object.entries(aircrafts) as [key, aircraft]}
                 {@const isVisible = selectedAircraft.has(key)}
-                {@const rssiPercentage = maxRssi > minRssi ? ((aircraft.rssi || 0) - minRssi) / (maxRssi - minRssi) * 100 : 50}
+                {@const rssiPercentage =
+                  maxRssi > minRssi
+                    ? (((aircraft.rssi || 0) - minRssi) / (maxRssi - minRssi)) *
+                      100
+                    : 50}
                 {@const signalBars = Math.ceil(rssiPercentage / 25)}
-                <div class="flex items-center gap-2 p-2 bg-gray-800 bg-opacity-50 rounded text-xs">
-                  <input 
-                    type="checkbox" 
+                <div
+                  class="flex items-center gap-2 p-2 bg-gray-800 bg-opacity-50 rounded text-xs"
+                >
+                  <input
+                    type="checkbox"
                     id="aircraft-{key}"
                     checked={isVisible}
-                    on:change={(e) => toggleAircraftVisibility(key, e.currentTarget.checked)}
+                    on:change={(e) =>
+                      toggleAircraftVisibility(key, e.currentTarget.checked)}
                     class="rounded"
                   />
                   <label for="aircraft-{key}" class="flex-1 cursor-pointer">
                     <div class="flex items-center gap-2">
-                      <div class="font-mono">{getAircraftDisplayName(aircraft, key)}</div>
+                      <div class="font-mono">
+                        {getAircraftDisplayName(aircraft, key)}
+                      </div>
                       <!-- Signal strength indicator -->
-                      <div class="flex items-center gap-1" title="Signal: {aircraft.rssi || 0} dB">
+                      <div
+                        class="flex items-center gap-1"
+                        title="Signal: {aircraft.rssi || 0} dB"
+                      >
                         {#each Array(4) as _, i}
-                          <div class="w-1 h-2 {i < signalBars ? 'bg-green-500' : 'bg-gray-600'} rounded-sm"></div>
+                          <div
+                            class="w-1 h-2 {i < signalBars
+                              ? 'bg-green-500'
+                              : 'bg-gray-600'} rounded-sm"
+                          ></div>
                         {/each}
-                        <span class="text-gray-500 text-xs ml-1">{aircraft.rssi || 0}</span>
+                        <span class="text-gray-500 text-xs ml-1"
+                          >{aircraft.rssi || 0}</span
+                        >
                       </div>
                     </div>
                     <div class="text-gray-400">
-                      Alt: {aircraft.altitude || 'N/A'}m | 
-                      {aircraft.receiver === 'zi-5067' ? 'Red' : 'Blue'}
+                      Alt: {aircraft.altitude || "N/A"}m |
+                      {aircraft.receiver === "zi-5067" ? "Red" : "Blue"}
                     </div>
                     {#if aircraft.latitude && aircraft.longitude}
                       <div class="text-gray-500">
-                        {aircraft.latitude.toFixed(3)}, {aircraft.longitude.toFixed(3)}
+                        {aircraft.latitude.toFixed(3)}, {aircraft.longitude.toFixed(
+                          3
+                        )}
                       </div>
                     {/if}
                   </label>
-                  <div class="w-2 h-2 {aircraft.receiver === 'zi-5067' ? 'bg-red-500' : 'bg-blue-500'} rounded-full"></div>
+                  <div
+                    class="w-2 h-2 {aircraft.receiver === 'zi-5067'
+                      ? 'bg-red-500'
+                      : 'bg-blue-500'} rounded-full"
+                  ></div>
                 </div>
               {/each}
             </div>
@@ -284,31 +335,49 @@
         </div>
       {/if}
     </div>
-    
+
     <!-- Controls info -->
-    <div class="absolute top-0 {showAircraftPanel ? 'left-80' : 'left-12'} p-4 text-white text-xs z-20 bg-black bg-opacity-50 rounded-br-lg transition-all duration-300">
+    <div
+      class="absolute top-0 {showAircraftPanel
+        ? 'left-80'
+        : 'left-12'} p-4 text-white text-xs z-20 bg-black bg-opacity-50 rounded-br-lg transition-all duration-300"
+    >
       <div>Use arrow keys to pan</div>
       <div>Use +/- to zoom</div>
       <div>Center: {centerLat.toFixed(3)}, {centerLon.toFixed(3)}</div>
       <div>Zoom: {zoomLevel}</div>
       {#if Object.values(aircrafts).length > 0}
         {@const aircraftList = Object.values(aircrafts)}
-        {@const lats = aircraftList.map(a => a.latitude).filter(lat => !isNaN(lat) && lat != null)}
-        {@const lons = aircraftList.map(a => a.longitude).filter(lon => !isNaN(lon) && lon != null)}
+        {@const lats = aircraftList
+          .map((a) => a.latitude)
+          .filter((lat) => !isNaN(lat) && lat != null)}
+        {@const lons = aircraftList
+          .map((a) => a.longitude)
+          .filter((lon) => !isNaN(lon) && lon != null)}
         {#if lats.length > 0 && lons.length > 0}
-          <div>Lat: {Math.min(...lats).toFixed(3)} to {Math.max(...lats).toFixed(3)}</div>
-          <div>Lon: {Math.min(...lons).toFixed(3)} to {Math.max(...lons).toFixed(3)}</div>
+          <div>
+            Lat: {Math.min(...lats).toFixed(3)} to {Math.max(...lats).toFixed(
+              3
+            )}
+          </div>
+          <div>
+            Lon: {Math.min(...lons).toFixed(3)} to {Math.max(...lons).toFixed(
+              3
+            )}
+          </div>
         {:else}
           <div>No valid coordinates yet</div>
         {/if}
       {/if}
     </div>
-    
+
     <!-- Stats -->
     <div class="flex gap-4 absolute top-0 right-0 p-4 flex-col z-20">
       <div class="text-white text-xs">
         Aircraft count: {Object.keys(aircrafts).length}
-        In range: {Object.values(aircrafts).filter((aircraft) => !aircraft.hidden).length}
+        In range: {Object.values(aircrafts).filter(
+          (aircraft) => !aircraft.hidden
+        ).length}
       </div>
       <div class="text-red-500 font-mono text-xs">
         zi-5067: {receiverBitrates.get("zi-5067")?.toFixed(2) || 0} signals/sec
@@ -317,18 +386,24 @@
         zi-5110: {receiverBitrates.get("zi-5110")?.toFixed(2) || 0} signals/sec
       </div>
     </div>
-    
+
     {#each Object.values(aircrafts) as aircraft}
-      {@const maxRssi = Object.values(aircrafts).reduce((max, aircraft) => Math.max(max, aircraft.rssi), 0)}
-      {@const minRssi = Object.values(aircrafts).reduce((min, aircraft) => Math.min(min, aircraft.rssi), 0)}
+      {@const visibleAircraft = Object.values(aircrafts).filter((a) => !a.hidden)}
+      {@const maxRssi = visibleAircraft.length > 0 ? Math.max(...visibleAircraft.map(a => a.rssi || -100)) : -100}
+      {@const minRssi = visibleAircraft.length > 0 ? Math.min(...visibleAircraft.map(a => a.rssi || -100)) : -100}
+      {$inspect({ maxRssi, minRssi })}
+
       {@const rssi = aircraft.rssi - minRssi}
-      {@const rssiPercentage = rssi / (maxRssi - minRssi)}
+      {@const rssiPercentage = maxRssi > minRssi ? rssi / (maxRssi - minRssi) : 1.0}
       {@const screenPos = latLonToScreen(aircraft.latitude, aircraft.longitude)}
-      
+
       {#if !aircraft.hidden && screenPos.x >= -50 && screenPos.x <= screenWidth + 50 && screenPos.y >= -50 && screenPos.y <= screenHeight + 50}
         <div
           class="absolute flex flex-col items-center justify-center transition-all duration-200"
-          style="left: {screenPos.x}px; top: {screenPos.y}px; transform: translate(-50%, -50%); opacity: {Math.max(0.1, rssiPercentage)};"
+          style="left: {screenPos.x}px; top: {screenPos.y}px; transform: translate(-50%, -50%); opacity: {Math.max(
+            0.3,
+            rssiPercentage
+          )}"
         >
           <!-- <span class="text-white text-xs">{aircraft.address}</span> -->
           <div

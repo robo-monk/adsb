@@ -98,7 +98,7 @@ export function processIncomingAircraftSignal(json: string) {
     receiver: obj.receiver,
     heading: obj.heading,
     speed: obj.speed,
-    hidden: false,
+    hidden: true,
   };
 
   if (!signal.address) return null;
