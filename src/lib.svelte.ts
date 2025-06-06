@@ -1,6 +1,14 @@
 import { SvelteMap } from "svelte/reactivity";
 
 type AircraftAddress = string;
+type PositionHistory = {
+  latitude: number;
+  longitude: number;
+  timestamp: number;
+  altitude: number;
+  rssi: number;
+};
+
 type AircraftSignal = {
   address: AircraftAddress;
   altitude: number;
@@ -12,6 +20,7 @@ type AircraftSignal = {
   heading: number;
   speed: number;
   hidden?: boolean;
+  positionHistory?: PositionHistory[];
 };
 
 export const receiverBitrates = new SvelteMap<AircraftSignal["receiver"], number>();
@@ -115,6 +124,32 @@ export function processIncomingAircraftSignal(json: string) {
     // update fields that are not null
     const aircraft = aircrafts[key];
 
+    // Check if position has significantly changed to add to history
+    const hasPositionChanged = 
+      signal.latitude && signal.longitude &&
+      (Math.abs((aircraft.latitude || 0) - signal.latitude) > 0.001 || 
+       Math.abs((aircraft.longitude || 0) - signal.longitude) > 0.001);
+
+    // Add current position to history before updating if position changed
+    if (hasPositionChanged && aircraft.latitude && aircraft.longitude) {
+      if (!aircraft.positionHistory) {
+        aircraft.positionHistory = [];
+      }
+      
+      aircraft.positionHistory.push({
+        latitude: aircraft.latitude,
+        longitude: aircraft.longitude,
+        timestamp: aircraft.timestamp || currentTimestamp,
+        altitude: aircraft.altitude || 0,
+        rssi: aircraft.rssi || -100
+      });
+      
+      // Keep only last 20 positions to avoid memory issues
+      if (aircraft.positionHistory.length > 20) {
+        aircraft.positionHistory = aircraft.positionHistory.slice(-20);
+      }
+    }
+
     if (signal.receiver) aircraft.receiver = signal.receiver;
     if (signal.altitude) aircraft.altitude = signal.altitude;
     if (signal.latitude) aircraft.latitude = signal.latitude;
@@ -127,7 +162,9 @@ export function processIncomingAircraftSignal(json: string) {
     // aircraft.hidden = false;
     aircrafts[key] = aircraft;
   } else {
-    aircrafts[key] = signal as AircraftSignal;
+    const newAircraft = signal as AircraftSignal;
+    newAircraft.positionHistory = [];
+    aircrafts[key] = newAircraft;
   }
   return signal;
 }

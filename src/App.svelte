@@ -15,7 +15,7 @@
     .filter(Boolean);
   // .map((s) => JSON.parse(s.trim()));
 
-  const FFWD_FACTOR = 1; // 1 is realtime, 0.1 is 10x faster, 0.01 is 100x faster
+  const FFWD_FACTOR = 0.001; // 1 is realtime, 0.1 is 10x faster, 0.01 is 100x faster
 
   let outOfData = $state(false);
 
@@ -162,16 +162,21 @@
   }
 
   let lastTimestamp = Date.parse(entries[0]).valueOf();
+  let instant = true;
   function next() {
     const entry = entries[cursor++];
     if (entry) {
       const signal = processIncomingAircraftSignal(entry);
       if (signal) {
-        setTimeout(next, (signal.timestamp! - lastTimestamp) * FFWD_FACTOR);
+        if (instant) {
+          next();
+        } else {
+          setTimeout(next, (signal.timestamp! - lastTimestamp) * FFWD_FACTOR);
+        }
         lastTimestamp = signal.timestamp!;
       }
     } else {
-      outOfData = true;
+      // outOfData = true;
     }
   }
 
@@ -195,18 +200,20 @@
     };
   });
 
-  // next();
+  next();
 
   // connect to ws at ws://192.87.172.71:1338
-  const ws = new WebSocket("ws://192.87.172.71:1338");
+  // const ws = new WebSocket("ws://192.87.172.71:1338");
 
-  ws.onmessage = (event) => {
-    processIncomingAircraftSignal(event.data);
-  };
+  // ws.onmessage = (event) => {
+  //   processIncomingAircraftSignal(event.data);
+  // };
 
-  onDestroy(() => {
-    ws.close();
-  });
+  // onDestroy(() => {
+  //   ws.close();
+  // });
+
+  let showLittlePlanes = $state(false);
 </script>
 
 <main class="relative">
@@ -388,16 +395,54 @@
     </div>
 
     {#each Object.values(aircrafts) as aircraft}
-      {@const visibleAircraft = Object.values(aircrafts).filter((a) => !a.hidden)}
-      {@const maxRssi = visibleAircraft.length > 0 ? Math.max(...visibleAircraft.map(a => a.rssi || -100)) : -100}
-      {@const minRssi = visibleAircraft.length > 0 ? Math.min(...visibleAircraft.map(a => a.rssi || -100)) : -100}
+      {@const visibleAircraft = Object.values(aircrafts).filter(
+        (a) => !a.hidden
+      )}
+      {@const maxRssi =
+        visibleAircraft.length > 0
+          ? Math.max(...visibleAircraft.map((a) => a.rssi || -100))
+          : -100}
+      {@const minRssi =
+        visibleAircraft.length > 0
+          ? Math.min(...visibleAircraft.map((a) => a.rssi || -100))
+          : -100}
       {$inspect({ maxRssi, minRssi })}
 
       {@const rssi = aircraft.rssi - minRssi}
-      {@const rssiPercentage = maxRssi > minRssi ? rssi / (maxRssi - minRssi) : 1.0}
+      {@const rssiPercentage =
+        maxRssi > minRssi ? rssi / (maxRssi - minRssi) : 1.0}
       {@const screenPos = latLonToScreen(aircraft.latitude, aircraft.longitude)}
 
+      <!-- Aircraft Position Component -->
       {#if !aircraft.hidden && screenPos.x >= -50 && screenPos.x <= screenWidth + 50 && screenPos.y >= -50 && screenPos.y <= screenHeight + 50}
+        <!-- Position Trail -->
+        {#if aircraft.positionHistory && aircraft.positionHistory.length > 0}
+          {#each aircraft.positionHistory as historyPos, index}
+            {@const trailScreenPos = latLonToScreen(
+              historyPos.latitude,
+              historyPos.longitude
+            )}
+            {@const historyRssiPercentage =
+              maxRssi > minRssi
+                ? (historyPos.rssi - minRssi) / (maxRssi - minRssi)
+                : 0.5}
+            {@const trailOpacity = Math.max(0.1, historyRssiPercentage * 0.8)}
+            {@const trailSize = Math.max(1, 2 + historyRssiPercentage * 2)}
+            <!-- {#if trailScreenPos.x >= -50 && trailScreenPos.x <= screenWidth + 50 && trailScreenPos.y >= -50 && trailScreenPos.y <= screenHeight + 50} -->
+            <div
+              class="absolute {aircraft.receiver === 'zi-5067'
+                ? 'bg-red-500'
+                : 'bg-blue-500'} rounded-full"
+              style="left: {trailScreenPos.x}px; top: {trailScreenPos.y}px; transform: translate(-50%, -50%); opacity: {trailOpacity}; width: {trailSize}px; height: {trailSize}px;"
+              title="Signal: {historyPos.rssi} dB at {new Date(
+                historyPos.timestamp
+              ).toLocaleTimeString()}"
+            ></div>
+            <!-- {/if} -->
+          {/each}
+        {/if}
+
+        <!-- Current Aircraft Position -->
         <div
           class="absolute flex flex-col items-center justify-center transition-all duration-200"
           style="left: {screenPos.x}px; top: {screenPos.y}px; transform: translate(-50%, -50%); opacity: {Math.max(
@@ -405,8 +450,7 @@
             rssiPercentage
           )}"
         >
-          <!-- <span class="text-white text-xs">{aircraft.address}</span> -->
-          <div
+          <!-- <div
             class="w-2 h-2 {aircraft.receiver === 'zi-5067'
               ? 'bg-red-500'
               : 'bg-blue-500'} rounded-full relative"
@@ -417,7 +461,20 @@
             ></div>
             <div class="text-white text-xs -rotate-90">✈</div>
           </div>
-          <!-- <span class="text-white text-xs">{aircraft.altitude}m</span> -->
+        </div> -->
+          {#if showLittlePlanes}
+            <div
+              class="{aircraft.receiver === 'zi-5067'
+                ? 'text-red-300'
+                : 'text-blue-300'} relative"
+              style="transform: rotateZ({aircraft.heading}deg);"
+            >
+              <!-- <div
+              class="w-[1px] h-2 bg-white absolute left-1/2 -translate-x-1/2 -translate-y-[100%]"
+            ></div> -->
+              <div class=" text-xs -rotate-90">✈</div>
+            </div>
+          {/if}
         </div>
       {/if}
     {/each}
