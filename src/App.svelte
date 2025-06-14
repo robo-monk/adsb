@@ -5,8 +5,10 @@
     aircrafts,
     receiverBitrates,
   } from "./lib.svelte";
-  import bigass from "./bigadsb.jsonl?raw";
+  // import bigass from "./bigadsb.jsonl?raw";
+
   // import bigass from "./out-ads-b.jsonl?raw";
+  // processEntries(10_000, bigass.split("\n").map((s) => s.trim()).filter(Boolean));
 
   let cursor = 0;
 
@@ -195,11 +197,11 @@
     return new Promise(resolve => setTimeout(resolve, ms));
   }
   
-  async function processEntries(maxEntries: number) {
-    const entries = bigass
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean);
+  async function processEntries(maxEntries: number, entries: string[]) {
+    // const entries = 
+    //   .split("\n")
+    //   .map((s) => s.trim())
+    //   .filter(Boolean);
 
     let lastTimestamp = Date.parse(entries[0]).valueOf();
     let instant = true;
@@ -239,7 +241,6 @@
     };
   });
 
-  // processEntries(10_000);
 
   // connect to ws at ws://192.87.172.71:1338
   const ws = new WebSocket("ws://192.87.172.71:1338");
@@ -278,7 +279,7 @@
             <h2 class="text-lg font-bold">Aircraft Control</h2>
           {/if}
           <button
-            on:click={() => (showAircraftPanel = !showAircraftPanel)}
+            onclick={() => (showAircraftPanel = !showAircraftPanel)}
             class="text-gray-400 hover:text-white p-1"
             title={showAircraftPanel ? "Collapse panel" : "Expand panel"}
           >
@@ -294,7 +295,7 @@
                 Object.keys(aircrafts).every((key) =>
                   selectedAircraft.has(key)
                 )}
-              on:change={(e) => toggleAllAircraft(e.currentTarget.checked)}
+              onchange={(e) => toggleAllAircraft(e.currentTarget.checked)}
               class="rounded"
             />
             <label for="toggle-all" class="text-sm"
@@ -332,7 +333,7 @@
                     type="checkbox"
                     id="aircraft-{key}"
                     checked={isVisible}
-                    on:change={(e) =>
+                    onchange={(e) =>
                       toggleAircraftVisibility(key, e.currentTarget.checked)}
                     class="rounded"
                   />
@@ -446,7 +447,6 @@
         visibleAircraft.length > 0
           ? Math.min(...visibleAircraft.map((a) => a.rssi || -100))
           : -100}
-      {$inspect({ maxRssi, minRssi })}
 
       {@const rssi = aircraft.rssi - minRssi}
       {@const rssiPercentage =
@@ -508,12 +508,12 @@
                 ? 'text-red-300'
                 : 'text-blue-300'} relative z-20 cursor-pointer hover:scale-125 transition-transform duration-200"
               style="transform: rotateZ({aircraft.heading}deg);"
-              on:click={() => showOnlyAircraft(key)}
-              on:mouseenter={() => hoveredAircraft = key}
-              on:mouseleave={() => hoveredAircraft = null}
+              onclick={() => showOnlyAircraft(key)}
+              onmouseenter={() => hoveredAircraft = key}
+              onmouseleave={() => hoveredAircraft = null}
               role="button"
               tabindex="0"
-              on:keydown={(e) => {
+              onkeydown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   showOnlyAircraft(key);
                 }
